@@ -1,25 +1,35 @@
-import os
+import os, sys
 from zipfile import ZipFile
 
-repo = input("Which repo would you like to extract the markdown from? >>>   ")
+obj = {}
 
-os.system("git clone \"https://github.com/LucAngevare/" + repo + ".git\"")
+if len(sys.argv) >= 6:
+    for i in range(len(sys.argv)):
+        if sys.argv[i].startswith("--"):
+            obj[sys.argv[i].replace("--", "")] = sys.argv[i + 1]
+            i + 1
+        else:
+            continue
+else:
+    print("Not enough arguments provided. Defaulting to script instead of CLI form.")
+    obj.clear()
+    obj["repo"] = input("Which repo would you like to extract the markdown from? >>>   ")
+    obj["markdown"] = input("Defined markdown file? (y/n) >>>    ")
+    if ((obj["markdown"].lower() == "y") or (obj["markdown"].lower() == "yes")):
+        obj["markdownFile"] = input("Filename? >>>    ")
+    obj["push"] = input("Want to push to GitHub? (y/n) >>>    ")
 
-markdown = input("Defined markdown file? (y/n) >>>    ")
-if ((markdown.lower() == "y") or (markdown.lower() == "yes")):
-    markdownFile = input("Filename? >>>    ")
+os.system("git clone \"https://github.com/LucAngevare/" + obj["repo"] + ".git\"")
 
 markdownList = []
 
-#TODO: Remove directory if it already exists
-
-if "markdownFile" not in vars():
-    for root, dirs, files in os.walk(os.path.join(repo)):
+if not hasattr(obj, "markdownFile"):
+    for root, dirs, files in os.walk(os.path.join(obj["repo"])):
         for file in files:
             if (file.endswith(".md")):
                 markdownList.append(os.path.join(root, file))
 else:
-    for root, dirs, files in os.walk(os.path.join(repo)):
+    for root, dirs, files in os.walk(os.path.join(obj["repo"])):
         for file in files:
             if ((file == markdownFile) or (file == "{markdownFile}.md")):
                 markdownList.append(os.path.join(root, file))
@@ -31,9 +41,7 @@ for file in markdownList:
     os.system("pandoc --from gfm+tex_math_dollars --to docx \"" + file +"\" -o \"" + file.replace(".md", ".docx") + "\"")
     os.system("mv " + "\"/".join([file.replace(file.split("/")[-1], ""), file.split("/")[-1].replace(".md", ".docx")]) + "\" \"./docxFiles/" + file.split("/")[-1].replace(".md", ".docx") + "\"")
 
-push = input("Want to push to GitHub? (y/n) >>>    ")
-
-if (push.lower() == "y") or (push.lower() == "yes"):
+if (obj["push"].lower() == "y") or (obj["push"].lower() == "yes"):
     for file in markdownList:
         os.system("cp \"./docxFiles/" + file.split("/")[-1].replace(".md", ".docx") + "\" \"" + "/".join([file.replace(file.split("/")[-1], ""), file.split("/")[-1].replace(".md", ".docx")]) + "\"")
     os.system("cd " + repo + "/ && git add . && git commit -m \"Converted markdown to Word format! ;)\" && git push")
